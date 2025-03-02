@@ -1,26 +1,49 @@
-FROM mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm
+FROM node:18-bullseye
 
-# Install MongoDB command line tools - though mongo-database-tools not available on arm64
-ARG MONGO_TOOLS_VERSION=6.0
-RUN . /etc/os-release \
-    && curl -sSL "https://www.mongodb.org/static/pgp/server-${MONGO_TOOLS_VERSION}.asc" | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian ${VERSION_CODENAME}/mongodb-org/${MONGO_TOOLS_VERSION} main" | tee /etc/apt/sources.list.d/mongodb-org-${MONGO_TOOLS_VERSION}.list \
-    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get install -y mongodb-mongosh \
-    && if [ "$(dpkg --print-architecture)" = "amd64" ]; then apt-get install -y mongodb-database-tools; fi \
-    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+# Instalar dependências do sistema
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get install -y --no-install-recommends \
+        gnupg \
+        curl \
+        git \
+    && mkdir -p /etc/apt/keyrings \
+    # Adicionar repositório do MongoDB
+    && curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor -o /etc/apt/keyrings/mongodb.gpg \
+    && echo "deb [ arch=amd64,arm64 signed-by=/etc/apt/keyrings/mongodb.gpg ] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list \
+    && apt-get update \
+    # Instalar pacotes necessários
+    && apt-get install -y --no-install-recommends \
+        mongodb-database-tools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalar dependências globais do Node.js
-RUN su node -c "npm install -g nodemon"
+# Criar diretórios com permissões adequadas
+RUN mkdir -p /workspace/backend \
+    && chown -R node:node /workspace
 
 # Configurar diretório de trabalho
-WORKDIR /workspaces/diretoria-de-Obras-de-Cooperacao
+WORKDIR /workspace/backend
 
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
+# Instalar dependências do Node.js
+COPY --chown=node:node backend/package*.json ./
+RUN npm install --legacy-peer-deps
 
-# [Optional] Uncomment if you want to install an additional version of node using nvm
-# ARG EXTRA_NODE_VERSION=10
-# RUN su node -c "source /usr/local/share/nvm/nvm.sh && nvm install ${EXTRA_NODE_VERSION}"
+# Criar estrutura de diretórios
+RUN mkdir -p \
+    public/admin \
+    uploads \
+    scripts \
+    && chown -R node:node . \
+    && chmod -R 775 public uploads scripts
 
+# Copiar arquivos do backend
+COPY --chown=node:node backend/ .
+
+USER node
+
+# Configurar variáveis de ambiente
+ENV NODE_ENV=development
+ENV ADMINJS_WATCH=true
+ENV CHOKIDAR_USEPOLLING=true
+ENV ADMINJS_ROOT_PATH=/admin
+ENV ADMINJS_BUNDLE_PATH=/workspace/backend/public/admin

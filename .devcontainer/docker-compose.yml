@@ -3,47 +3,49 @@ version: '3.8'
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
     volumes:
-      - ../..:/workspaces:cached
-    
-    # Overrides default command so things don't shut down after the process ends.
-    command: sleep infinity
-
-    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
-    network_mode: service:db
-
-    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
+      - ..:/workspace:cached
+      - adminjs-node-modules:/workspace/backend/node_modules
     environment:
-      - MONGODB_URI=mongodb://root:root@db:27017
-      - DATABASE_NAME=doc_db
       - NODE_ENV=development
-      - PORT=3000
+      - PORT=3000  # ⭐️ Adicionado para definir explicitamente a porta
+      - MONGODB_URI=mongodb://root:root@db:27017/doc_db?authSource=admin&directConnection=true&retryWrites=false
+      - ADMINJS_WATCH=true
+      - COOKIE_SECRET=${COOKIE_SECRET:-your-secret-key}
+      - SESSION_SECRET=${SESSION_SECRET:-your-session-secret}
+      - ADMINJS_BUNDLE_PATH=/workspace/backend/public/admin
+      - ADMINJS_ROOT_PATH=/admin
+      - FRONTEND_DIR=/workspace
+    ports:
+      - "3000:3000"
+      - "9229:9229"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: bash -c "sleep 5 && cd /workspace/backend && npm run dev"  # ⭐️ Adicionado delay
+    user: node
 
   db:
-    image: mongo:latest
+    image: mongo:6.0.11
     restart: unless-stopped
-    volumes:
-      - mongodb-data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
       MONGO_INITDB_DATABASE: doc_db
-
-  mongo-express:
-    image: mongo-express
-    restart: unless-stopped
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: root
-      ME_CONFIG_MONGODB_URL: mongodb://root:root@db:27017/
-    depends_on:
-      - db
-    # Mongo Express web interface
     ports:
-      - "8081:8081"
+      - "27018:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "-u", "root", "-p", "root", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]  # ⭐️ Comando corrigido
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s  # ⭐️ Tempo aumentado
+    command: mongod --bind_ip_all
 
 volumes:
   mongodb-data:
+  adminjs-node-modules:

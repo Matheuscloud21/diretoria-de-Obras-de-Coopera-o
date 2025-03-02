@@ -1,35 +1,30 @@
 {
-  "name": "doc-admin-backend",
-  "version": "1.0.0",
-  "description": "Backend para administração do sistema DOC",
-  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "create-admin": "node src/scripts/createAdminUser.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "echo '🎯 Iniciando em modo desenvolvimento...' && nodemon --watch src server.js",
+    "start": "echo '🚀 Iniciando em modo produção...' && node server.js",
+    "bundle": "echo '📦 Iniciando bundle...' && node scripts/bundle-adminjs.js"
   },
-  "keywords": [
-    "doc",
-    "admin",
-    "backend",
-    "api"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^10.0.0",
-    "express": "^4.17.1",
-    "express-rate-limit": "^6.0.0",
-    "helmet": "^4.6.0",
-    "jsonwebtoken": "^8.5.1",
-    "leaflet": "^1.9.4",
-    "mongoose": "^6.0.0",
-    "multer": "^1.4.3"
+    "adminjs": "^7.0.0",
+    "@adminjs/express": "^6.0.0",
+    "@adminjs/mongoose": "^4.0.0",
+    "@adminjs/upload": "^4.0.0",
+    "@adminjs/design-system": "^4.0.0",
+    "@adminjs/bundler": "^3.0.0",
+    "express": "^4.18.2",
+    "express-formidable": "^1.2.0",
+    "express-session": "^1.17.3",
+    "connect-mongo": "^5.0.0",
+    "mongoose": "^7.6.0",
+    "nodemon": "^3.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "styled-components": "^5.3.9"
   },
   "devDependencies": {
-    "nodemon": "^2.0.15"
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.22.20",
+    "@babel/preset-react": "^7.22.15"
   }
 }
